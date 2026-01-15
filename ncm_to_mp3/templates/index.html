@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCM to MP3 Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        .upload-zone {
+            border: 3px dashed #444;
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.02);
+            margin-bottom: 30px;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .upload-zone svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            fill: #666;
+        }
+
+        .upload-zone:hover svg,
+        .upload-zone.dragover svg {
+            fill: #00d4ff;
+        }
+
+        .upload-zone p {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .upload-zone .hint {
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-list {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-list.show {
+            display: block;
+        }
+
+        .file-list h3 {
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-size {
+            color: #888;
+            margin-left: 15px;
+            font-size: 0.9em;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-download {
+            background: #28a745;
+            color: #fff;
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-download:hover {
+            background: #218838;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .status-card.show {
+            display: block;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+        }
+
+        .status-pending .status-icon { fill: #ffc107; }
+        .status-processing .status-icon { fill: #00d4ff; animation: spin 1s linear infinite; }
+        .status-completed .status-icon { fill: #28a745; }
+        .status-failed .status-icon { fill: #dc3545; }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .status-text {
+            font-size: 1.1em;
+        }
+
+        .result-files {
+            margin-top: 20px;
+        }
+
+        .result-file {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .processing .progress-fill {
+            width: 100%;
+            animation: progress 1.5s ease-in-out infinite;
+        }
+
+        @keyframes progress {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NCM to MP3</h1>
+        <p class="subtitle">Upload .ncm files and convert them to MP3/FLAC</p>
+
+        <div class="upload-zone" id="uploadZone">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+            </svg>
+            <p>Drag & drop NCM files here</p>
+            <p class="hint">or click to select files</p>
+            <input type="file" id="fileInput" multiple accept=".ncm">
+        </div>
+
+        <div class="file-list" id="fileList">
+            <h3>Selected Files</h3>
+            <div id="fileItems"></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" id="convertBtn" disabled>Convert Files</button>
+        </div>
+
+        <div class="status-card" id="statusCard">
+            <div class="status-header">
+                <svg class="status-icon" viewBox="0 0 24 24">
+                    <path id="statusIconPath" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                </svg>
+                <span class="status-text" id="statusText">Processing...</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="result-files" id="resultFiles"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Powered by <a href="https://github.com/taurusxin/ncmdump" target="_blank">ncmdump</a></p>
+    </footer>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const fileItems = document.getElementById('fileItems');
+        const convertBtn = document.getElementById('convertBtn');
+        const statusCard = document.getElementById('statusCard');
+        const statusText = document.getElementById('statusText');
+        const resultFiles = document.getElementById('resultFiles');
+        const progressFill = document.getElementById('progressFill');
+
+        let selectedFiles = [];
+        let currentTaskId = null;
+
+        // Drag and drop handlers
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files).filter(f => f.name.endsWith('.ncm'));
+            updateFileList();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function updateFileList() {
+            if (selectedFiles.length === 0) {
+                fileList.classList.remove('show');
+                convertBtn.disabled = true;
+                return;
+            }
+
+            fileList.classList.add('show');
+            convertBtn.disabled = false;
+
+            fileItems.innerHTML = selectedFiles.map(file => `
+                <div class="file-item">
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                </div>
+            `).join('');
+        }
+
+        convertBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            convertBtn.disabled = true;
+            statusCard.classList.add('show');
+            statusCard.className = 'status-card show status-pending';
+            statusText.textContent = 'Uploading files...';
+            resultFiles.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const data = await response.json();
+                currentTaskId = data.task_id;
+
+                statusCard.className = 'status-card show status-processing processing';
+                statusText.textContent = 'Converting files...';
+
+                // Poll for status
+                pollStatus();
+            } catch (error) {
+                statusCard.className = 'status-card show status-failed';
+                statusText.textContent = 'Error: ' + error.message;
+                convertBtn.disabled = false;
+            }
+        });
+
+        async function pollStatus() {
+            if (!currentTaskId) return;
+
+            try {
+                const response = await fetch(`/api/status/${currentTaskId}`);
+                const data = await response.json();
+
+                if (data.status === 'processing' || data.status === 'pending') {
+                    statusText.textContent = data.message;
+                    setTimeout(pollStatus, 1000);
+                } else if (data.status === 'completed') {
+                    statusCard.className = 'status-card show status-completed';
+                    statusText.textContent = data.message;
+                    progressFill.style.width = '100%';
+                    showResults(data.files);
+                    convertBtn.disabled = false;
+                } else {
+                    statusCard.className = 'status-card show status-failed';
+                    statusText.textContent = data.message;
+                    convertBtn.disabled = false;
+                }
+            } catch (error) {
+                setTimeout(pollStatus, 2000);
+            }
+        }
+
+        function showResults(files) {
+            if (files.length === 0) return;
+
+            let html = files.map(file => `
+                <div class="result-file">
+                    <span class="file-name">${file}</span>
+                    <a href="/api/download/${currentTaskId}/${encodeURIComponent(file)}"
+                       class="btn btn-download" download>Download</a>
+                </div>
+            `).join('');
+
+            if (files.length > 1) {
+                html += `
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a href="/api/download-all/${currentTaskId}"
+                           class="btn btn-primary" download>Download All (ZIP)</a>
+                    </div>
+                `;
+            }
+
+            resultFiles.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
